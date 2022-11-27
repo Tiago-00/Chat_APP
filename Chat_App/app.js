@@ -25,6 +25,6 @@ app.get('/', function (req, res) {
 });
 
 require('./server/server')(app, io);
-server.listen(3000);
+server.listen(8000);
 module.exports = app;
 
