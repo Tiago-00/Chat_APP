@@ -1,13 +1,14 @@
-const express = require("express");
-const path = require("path");
+var express = require('express');
+var path = require('path');
 
 const app = express();
 const server = require("http").createServer(app);
 const io = require("socket.io")(server);
 
-app.use(express.static(path.join(__dirname+"/public")));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Set .html as the default template extension
 app.set('view engine', 'html');
 
 // Initialize the ejs template engine
@@ -25,7 +26,5 @@ app.get('/', function (req, res) {
 
 require('./server/server')(app, io);
 server.listen(3000);
-
-
-
+module.exports = app;
 
