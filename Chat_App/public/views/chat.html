@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Chat App</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="icon" href="img/security-icon.ico">
+	<link rel="stylesheet" href="stylesheets/login.css">
+	<link rel='stylesheet' href='stylesheets/stylesheet.css'>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">	
+</head>
+
+<body>
+
+	<!-- Login Section -->
+	<div class="main">
+		<div class="container-login100">
+			
+				<div id="loginForm" class="login100-form validate-form">
+
+					<label class="label" aria-hidden="true">Sign up</label>
+						
+					<div class="wrap-input100 validate-input" data-validate="Enter username">
+						<input id="yourName" class="input100" type="text"  placeholder="Username">
+						
+					</div>
+
+					<div class="wrap-input100 validate-input" data-validate="Enter email">
+						<input id="yourEmail" class="input100" type="email"  placeholder="Email">
+						
+					</div>
+
+					<div class="wrap-input100 validate-input" data-validate="Enter password">
+						<input id="yourPass" class="input100" type="password"  placeholder="Password">
+						
+					</div>
+
+					<div class="container-login100-form-btn">
+						<button id="loginButton" class="login100-form-btn">
+							Login
+						</button>
+					</div>	
+				</div>
+		</div>
+	</div>
+
+	<!-- Chat Section -->
+	<div id="frame" style="display: none;">
+		<div id="sidepanel">
+			<div id="profile">
+				<div class="wrap">
+					<img id="profile-img" src="img/person.png" class="online" />
+					<p id="myUsername">My Name</p>	
+				</div>
+			</div>
+			<div id="search">
+				<label for="">
+					<i class="fa fa-search" aria-hidden="true"></i>
+				</label>
+				<input type="text" placeholder="Procure por contactos...">
+			</div>
+			<div id="contacts">
+				<ul id="userContacts"></ul>
+				<ul id="channelContacts"></ul>
+			</div>
+			<div id="bottom-bar">
+				<button id="addchannel">
+					<i class="fa fa-group fa-fw" aria-hidden="true"></i>
+					<span>Criar Grupo</span>
+				</button>	
+			</div>
+		</div>
+		<div class="content">
+			<div class="contact-profile">
+				<img id="channel-profile-img" src="img/person.png" />
+				<p id="channel-profile-name"></p>	
+			</div>
+			<div class="messages">
+				<ul></ul>
+			</div>
+			<div class="message-input">
+				<div class="wrap">
+					<input type="text" placeholder="Escreva a sua mensagem..." />
+					
+					<button class="submit">
+						<i class="fa fa-paper-plane" aria-hidden="true"></i>
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="socket.io/socket.io.js"></script>
+	<script src="scripts/crypto-js/crypto-js.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.0.0-rc.1/jsencrypt.min.js"></script>
+	<script src="scripts/crypto.js"></script>
+	<script src="scripts/client.js"></script>
+	<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+
+</body>
+
+</html>
