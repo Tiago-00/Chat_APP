@@ -1,25 +1,25 @@
 "use strict";
 
-// Create the encryption object for asymmetric RSA algorithm.
-var rsa = new JSEncrypt();
+//cria um objeto de criptografia RSA assimétrica
+var rsaEncry = new JSEncrypt();
 
-var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz*&-%/!?*+=()";
+var characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz*&-%/!?*+=()";
 
-// create a key for symmetric encryption
+// gerar uma chave simétrica
 // pass in the desired length of your key
 function generateKey(keyLength) {
     var randomstring = '';
 
     for (var i = 0; i < keyLength; i++) {
-        var rnum = Math.floor(Math.random() * chars.length);
-        randomstring += chars.substring(rnum, rnum + 1);
+        var rnum = Math.floor(Math.random() * characters.length);
+        randomstring += characters.substring(rnum, rnum + 1);
     }
    // console.log("A string:" + randomstring);
     return randomstring;
     
 }
 
-// create the pair public and private key for asymmetric encryption
+// criar um par de chaves públicas e privadas para criptografia assimétrica
 var generateKeyPair = function () {
     var crypt = new JSEncrypt({ default_key_size: 1024 });
     crypt.getKey();
@@ -35,12 +35,12 @@ String.prototype.getHash = function () {
     return CryptoJS.SHA512(this).toString();
 }
 
-// symmetric 3DES encryption
+// symmetric AES encryption
 String.prototype.symEncrypt = function (pass) {
     return CryptoJS.AES.encrypt(this, pass).toString();
 }
 
-// symmetric 3DES decryption
+// symmetric AES decryption
 String.prototype.symDecrypt = function (pass) {
     var bytes = CryptoJS.AES.decrypt(this, pass);
     return bytes.toString(CryptoJS.enc.Utf8);
@@ -48,20 +48,20 @@ String.prototype.symDecrypt = function (pass) {
 
 // asymmetric RSA encryption
 String.prototype.asymEncrypt = function (publicKey) {
-    rsa.setPublicKey(publicKey);
+    rsaEncry.setPublicKey(publicKey);
    // console.log("Public Key:" + publicKey);
     return rsa.encrypt(this);
 }
 
 // asymmetric RSA decryption
 String.prototype.asymDecrypt = function (privateKey) {
-    rsa.setPrivateKey(privateKey);
+    rsaEncry.setPrivateKey(privateKey);
     //console.log("Private Key:" + privateKey);
     return rsa.decrypt(this);
 }
 
 function getCipherKeys() {
-    var keys = localStorage.cipherKeys; // read keys json 
+    var keys = localStorage.cipherKeys; 
     if (keys == null) {
         keys = generateKeyPair();
 
