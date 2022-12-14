@@ -1,16 +1,17 @@
-/* This file is executed in the browser, when people visit /   */
+
 "use strict";
 
+
 // variables which hold the data for each person
-var socket = io(), // connect to the socket
+var socket = io(), 
 	lstUsers = null,
 	lstChannels = null,
 	currentChannelName = "",
 	channelMessages = {},
 	channels = null,
 	state = ["offline", "online"], // 0: offline, 1: online
-	lstTypingUser = {},
 	keys = getCipherKeys();
+	
 
 // on connection to server get the id of person's channel
 socket.on("connect", () => {
@@ -24,7 +25,7 @@ socket.on("connect", () => {
 	}
 });
 
-// when me sign-in was expired from server time
+// quando expira o tempo da minha entrada no servidor
 socket.on("resign", () => {
 	var me = getMe();
 	$(".login100-form-title").html("Login");
@@ -33,7 +34,7 @@ socket.on("resign", () => {
 	$("#yourAvatar").attr("src=img/person.png");	
 });
 
-// when me disconnected from server then changed my profile status to offline mode
+// quando me desligo do servidor e depois mudo o meu estado de perfil para offline
 socket.on("disconnect", () => {
 	console.warn(`socket <${getMe().socketid}> disconnected!`);
 	setConnectionStatus("disconnected");
@@ -44,17 +45,17 @@ socket.on("exception", err => {
 	alert(err);
 });
 
-// save the my user data when I signed-in to server successfully
+// guardar os dados do utilizador com sucesso no servidor
 socket.on('signed', signedin);
 	
-// update users and channels data when thats status changed
+// atualizar os dados dos utilizadores e os channels quando o seu estado muda
 socket.on('update', data => {
 	lstUsers = data.users;
 	lstChannels = data.channels;
 	$("#userContacts").empty();
 	$("#channelContacts").empty();
 
-	delete lstUsers[getMe().id]; // remove me from users list
+	delete lstUsers[getMe().id];
 	for (var prop in lstUsers) {
 		var user = lstUsers[prop];
 		var channel = getChannelName(user.id);
@@ -71,7 +72,7 @@ socket.on('update', data => {
 	}
 });
 
-// when a client socket disconnected or a channel admin be offline
+// quando um client se desconecta ou um administrador do channel está offline
 socket.on('leave', leftedUser => {
 	var u = lstUsers[leftedUser.id];
 	if (u != null) {
@@ -86,7 +87,7 @@ socket.on('request', data => {
 	var reqUser = lstUsers[data.from];
 	if (reqUser == null) {
 		socket.emit("reject", { to: data.from, channel: data.channel, msg: "I don't know who requested!" });
-		return; // incorrect request from
+		return;
 	}
 	var reqChannel = getChannels()[data.channel];
 
@@ -99,7 +100,7 @@ socket.on('request', data => {
 		}
 		//aceitou
 		createChannel(data.channel, true);
-		reqChannel = getChannels()[data.channel];
+		reqChannel = getChannels()[data.channel];	
 	}
 	else if (reqChannel.p2p === false) {
 		// ask me to accept or reject user request
@@ -108,25 +109,24 @@ socket.on('request', data => {
 			return;
 		}
 	}
-	// encrypt the chat symmetricKey by requested user public key
+	// encriptar o chat usando a chave publica que solicitamos do utilizador
 	var encryptedChannelKey = reqChannel.channelKey.asymEncrypt(data.pubKey)
 	// send data to requester user to join in current channel
 	socket.emit("accept", { to: data.from, channelKey: encryptedChannelKey, channel: reqChannel.name })
 	chatStarted(reqChannel.name);
-	console.log("Chave publica do outro utilizador:"+data.pubKey);
+	console.log("Chave publica do utilizador que pediu:"+data.pubKey);
 });
 
 // when my chat request accepted by channel admin
 socket.on('accept', data => {
 	// decrypt RSA cipher by my pricate key
-
 	swal("", "O seu pedido foi aceite!", "success");
-	
 	var symmetricKey = data.channelKey.asymDecrypt(keys.privateKey);
 	
 	// store this channel to my channels list
 	setChannel(data.channel, { name: data.channel, p2p: data.p2p, channelKey: symmetricKey });
-	chatStarted(data.channel);
+	chatStarted(data.channel);	
+	
 });
 
 // pedidos rejeitados pelo admin, tanto para iniciar um chat como entrar no grupo criado por ele
@@ -274,7 +274,6 @@ function chatStarted(channel) {
 }
 
 function signedin(me) {
-	console.info(`I signed-in by socket <${me.socketid}>`);
 	setMe(me);
 	$("title").html(`Secure Chat - ${me.username}`)
 	$("#profile-img").attr("src=img/person.png");
@@ -311,7 +310,7 @@ function newMessage() {
 	// get channel symmetric key and encrypt message
 	var chatSymmetricKey = getChannels()[currentChannelName].channelKey;
 	var msg = message.symEncrypt(chatSymmetricKey)
-	console.log("Chave simetrica:"+ chatSymmetricKey);
+	//console.log("Chave simetrica:"+ chatSymmetricKey);
 	console.log("Mensagem encriptada:" +msg);
 
 	// Send the message to the chat channel

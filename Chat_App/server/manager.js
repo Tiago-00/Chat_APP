@@ -72,6 +72,7 @@ e.findUser = function (socketid) {
     return null; // user not found
 }
 
+//junçao dos id dos utilizadores quando pretendem falar os dois 
 e.generateChannelName = function (uid0, uid1) {
     var ids = [uid0, uid1].sort();
     return ids[0] + "_" + ids[1]; // unique name for this users private 

@@ -4,13 +4,11 @@
 
 var manager = require('./manager.js');
 var crypto = require("crypto-js");
-var serverVersion = manager.generateGuid(); // a unique version for every startup of server
+var serverVersion = manager.generateGuid();
 var globalChannel = "environment"; // add any authenticated user to this channel
 var chat = {}; // socket.io
 var loginExpireTime = 3600 * 1000; // 3600sec
 
-// Export a function, so that we can pass 
-// the app and io instances from the app.js file:
 module.exports = function (app, io) {
     // Initialize a new socket.io application, named 'chat'
     chat = io;
@@ -35,7 +33,7 @@ module.exports = function (app, io) {
                     }
                     user.lastLoginDate = Date.now(); // update user login time
                 }
-                else { // exist user, entry password is incorrect
+                else { 
                     socket.emit("exception", "The username or password is incorrect!");
                     console.info(`User <${user.username}> can't login, because that password is incorrect!`);
                 }
@@ -91,7 +89,7 @@ function userSigned(user, socket) {
     defineSocketEvents(socket);
 
     console.info(`User <${user.username}> by socket <${user.socketid}> connected`)
-} // signed-in
+} 
 
 function updateAllUsers() {
     // tell new user added and list updated to everyone except the socket that starts it
@@ -120,8 +118,6 @@ function defineSocketEvents(socket) {
                 { username: user.username, id: user.id, status: user.status });
         }
     });
-
-//-----------Adiciona os utilizadores(tudo o que esta para cima) -----//
 
     // Handle the sending of messages
     socket.on("msg", data => {
@@ -164,7 +160,6 @@ function defineSocketEvents(socket) {
                 return;
             }
         }
-        //
         // from or adminUser is null
         socket.emit("exception", "The requested chat not found!");
     });
@@ -186,10 +181,9 @@ function defineSocketEvents(socket) {
                 // new p2p channel
                 channel = createChannel(data.channel, from, true)
             }
-            //
-            // add new user to this channel
+            // adicionar utilizador ao channel
             channel.users.push(to.id);
-            chat.sockets.connected[to.socketid].join(channel.name); // add new user to chat channel
+            chat.sockets.connected[to.socketid].join(channel.name);
 
             // send accept msg to user which requested to chat
             socket.to(to.socketid).emit("accept", { from: from.id, channel: channel.name, p2p: channel.p2p, channelKey: data.channelKey })
@@ -207,7 +201,7 @@ function defineSocketEvents(socket) {
             return;
         }
 
-        // create new channel
+        // criação do channel
         channel = createChannel(name, from, false);
         updateAllUsers();
 
