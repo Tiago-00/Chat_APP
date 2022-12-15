@@ -1,7 +1,5 @@
 var express = require('express');
 var path = require('path');
-app.set('port', (process.env.PORT || 3000));
-
 
 const app = express();
 const server = require("http").createServer(app);
@@ -19,11 +17,10 @@ app.engine('html', require('ejs').renderFile);
 app.set('views', path.join(__dirname, 'public/views'));
 
 app.get('/', function (req, res) {
-	// Render views/chat.html
-	res.render('chat');
+    // Render views/chat.html
+    res.render('chat');
 });
 
 require('./server/server')(app, io);
-server.listen(port);
+server.listen(3000);
 module.exports = app;
-

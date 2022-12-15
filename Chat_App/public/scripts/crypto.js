@@ -1,6 +1,6 @@
 "use strict";
 
-//cria um objeto de criptografia RSA assimétrica
+//cria um objeto de criptografia rsaEncry assimétrica
 var rsaEncry = new JSEncrypt();
 
 var characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz*&-%/!?*+=()";
@@ -50,18 +50,18 @@ String.prototype.symDecrypt = function (pass) {
     return bytes.toString(CryptoJS.enc.Utf8);
 }
 
-// asymmetric RSA encryption
+// asymmetric rsaEncry encryption
 String.prototype.asymEncrypt = function (publicKey) {
     rsaEncry.setPublicKey(publicKey);
    // console.log("Public Key:" + publicKey);
-    return rsa.encrypt(this);
+    return rsaEncry.encrypt(this);
 }
 
-// asymmetric RSA decryption
+// asymmetric rsaEncry decryption
 String.prototype.asymDecrypt = function (privateKey) {
     rsaEncry.setPrivateKey(privateKey);
     //console.log("Private Key:" + privateKey);
-    return rsa.decrypt(this);
+    return rsaEncry.decrypt(this);
 }
 
 function getCipherKeys() {
