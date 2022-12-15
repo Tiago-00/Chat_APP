@@ -5,8 +5,12 @@ var rsaEncry = new JSEncrypt();
 
 var characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz*&-%/!?*+=()";
 
+<<<<<<< HEAD
 // gerar uma chave simétrica
 // pass in the desired length of your key
+=======
+// create a key for symmetric encryption
+>>>>>>> main
 function generateKey(keyLength) {
     var randomstring = '';
 

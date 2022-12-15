@@ -1,11 +1,9 @@
-// This file is required by app.js. It sets up event listeners
-// and listens for socket.io messages.
 "use strict";
 
 var manager = require('./manager.js');
 var crypto = require("crypto-js");
 var serverVersion = manager.generateGuid();
-var globalChannel = "environment"; // add any authenticated user to this channel
+var ChatGlobal = "environment"; // add any authenticated user to this channel
 var chat = {}; // socket.io
 var loginExpireTime = 3600 * 1000; // 3600sec
 
@@ -39,9 +37,6 @@ module.exports = function (app, io) {
                 }
             }
             else { // new user
-                // Use the socket object to store data. Each client gets
-                // their own unique socket object
-                //console.log("DATA.PASSWORD:"+data.password);
                 var user = {
                     "socketid": socket.id, 
                     "id": data.email.hashCode(),
@@ -50,8 +45,7 @@ module.exports = function (app, io) {
                     "password": userHashedPass, 
                     "status": "online", 
                     "lastLoginDate": Date.now() 
-                };
-                //console.log("USERHASEHPASS:"+userHashedPass);                
+                };               
                 manager.clients[user.id] = user;
                 userSigned(user, socket);
             }
@@ -66,63 +60,58 @@ function userSigned(user, socket) {
     user.socketid = socket.id;
     socket.user = user;
 
-    // send success ack to user by self data object
     socket.emit("signed", {
         "id": user.id,
         "username": user.username,
         "email": user.email,
         "status": user.status,
         "serverVersion": serverVersion,
-        "password": user.password, 
-        
+        "password": user.password,       
     });
 
-    socket.join(globalChannel); // join all users in global authenticated group
+    socket.join(ChatGlobal); // join all users in global authenticated group
     
-    // add user to all joined channels
-    var userChannels = manager.getUserChannels(user.id, true); // by p2p channel
-    for (var channel in userChannels) {
+    // add user to all joined grupos
+    var usergrupos = manager.getUsergrupos(user.id, true); // by p2p channel
+    for (var channel in usergrupos) {
         socket.join(channel);
     }
 
-    updateAllUsers();
+    AtualizarUtilizadores();
     defineSocketEvents(socket);
 
     console.info(`User <${user.username}> by socket <${user.socketid}> connected`)
 } 
 
-function updateAllUsers() {
+function AtualizarUtilizadores() {
     // tell new user added and list updated to everyone except the socket that starts it
-    chat.sockets.in(globalChannel).emit("update", { users: manager.getUsers(), channels: manager.getChannels() });
+    chat.sockets.in(ChatGlobal).emit("update", { users: manager.getUsers(), grupos: manager.getgrupos() });
 }
 
-function createChannel(name, user, p2p) {
+function CriarGrupo(name, user, p2p) {
     var channel = { name: name, p2p: p2p, adminUserId: user.id, status: "online", users: [user.id] };
-    manager.channels[name] = channel;
+    manager.grupos[name] = channel;
     chat.sockets.connected[user.socketid].join(name); // add admin to self chat
     return channel;
 }
 
 function defineSocketEvents(socket) {
 
-    // Somebody left the chat
+    // alguem saiu do chat
     socket.on('disconnect', () => {
-        // and no special teardown is needed on this part.
-
-        // find user who abandon sockets
-        var user = socket.user || manager.findUser(socket.id);
+        // procurar qual foi o utilizador
+        var user = socket.user || manager.EncontrarUtilizador(socket.id);
         if (user) {
             console.warn(`User <${user.username}> by socket <${user.socketid}> disconnected!`);
             user.status = "offline";
-            socket.broadcast.to(globalChannel).emit('leave',
+            socket.broadcast.to(ChatGlobal).emit('leave',
                 { username: user.username, id: user.id, status: user.status });
         }
     });
 
-    // Handle the sending of messages
     socket.on("msg", data => {
-        var from = socket.user || manager.findUser(socket.id);
-        var channel = manager.channels[data.to];
+        var from = socket.user || manager.EncontrarUtilizador(socket.id);
+        var channel = manager.grupos[data.to];
 
         if (from != null && channel != null && channel.users.indexOf(from.id) != -1) {
             var msg = manager.messages[channel.name];
@@ -131,7 +120,7 @@ function defineSocketEvents(socket) {
 
             data.date = Date.now();
             data.type = "msg";
-            // When the server receives a message, it sends it to the all clients, so also to sender
+            // When the server receives a message, it sends it to the all clients
             chat.sockets.in(channel.name).emit('receive', data);
             msg.push(data);
         }
@@ -141,7 +130,7 @@ function defineSocketEvents(socket) {
     socket.on("request", data => {
 
         // find user who requested to this chat by socket id
-        var from = socket.user || manager.findUser(socket.id);
+        var from = socket.user || manager.EncontrarUtilizador(socket.id);
 
         // if user authenticated 
         if (from) {
@@ -152,7 +141,7 @@ function defineSocketEvents(socket) {
 
             if (adminUser) {
                 if (adminUser.status == "offline") {
-                    var p2p = (manager.channels[data.channel] == null ? true : manager.channels[data.channel].p2p);
+                    var p2p = (manager.grupos[data.channel] == null ? true : manager.grupos[data.channel].p2p);
                     socket.emit("reject", { from: adminUser.id, channel: data.channel, p2p: p2p, msg: "admin user is offline" });
                 }
                 else
@@ -168,18 +157,18 @@ function defineSocketEvents(socket) {
     socket.on("accept", data => {
 
         // find user who accepted to this chat by socket id
-        var from = socket.user || manager.findUser(socket.id);
+        var from = socket.user || manager.EncontrarUtilizador(socket.id);
 
         // find user who is target user by user id
         var to = manager.clients[data.to];
 
         // if users authenticated 
         if (from != null && to != null) {
-            var channel = manager.channels[data.channel];
+            var channel = manager.grupos[data.channel];
 
             if (channel == null) {
                 // new p2p channel
-                channel = createChannel(data.channel, from, true)
+                channel = CriarGrupo(data.channel, from, true)
             }
             // adicionar utilizador ao channel
             channel.users.push(to.id);
@@ -191,36 +180,35 @@ function defineSocketEvents(socket) {
     });
 
     // Handle the request to create channel
-    socket.on("createChannel", name => {
+    socket.on("CriarGrupo", name => {
         var from = socket.user;
-        var channel = manager.channels[name];
+        var channel = manager.grupos[name];
 
         if (channel) {
-            // the given channel name is already exist!
-            socket.emit("reject", { from: from.id, p2p: false, channel: channel, msg: "The given channel name is already exist" })
+            
+            socket.emit("reject", { from: from.id, p2p: false, channel: channel, msg: "O nome desse grupo ja existe" })
             return;
         }
 
         // criação do channel
-        channel = createChannel(name, from, false);
-        updateAllUsers();
+        channel = CriarGrupo(name, from, false);
+        AtualizarUtilizadores();
 
         console.info(`Channel <${channel.name}> created by user <${from.username}: ${channel.adminUserId}>`)
     });
-
 
     // Handle the request of users for chat
     socket.on("reject", data => {
 
         // find user who accepted to this chat by socket id
-        var from = socket.user || manager.findUser(socket.id);
+        var from = socket.user || manager.EncontrarUtilizador(socket.id);
 
         // find user who is target user by user id
         var to = manager.clients[data.to];
 
         // if users authenticated 
         if (from != null && to != null) {
-            var channel = manager.channels[data.channel];
+            var channel = manager.grupos[data.channel];
             socket.to(to.socketid).emit("reject", { from: from.id, p2p: (channel == null), channel: data.channel })
         }
     });
@@ -228,9 +216,9 @@ function defineSocketEvents(socket) {
     // Handle the request of users for chat
     socket.on("fetch-messages", channelName => {
         // find fetcher user
-        var fetcher = socket.user || manager.findUser(socket.id);
+        var fetcher = socket.user || manager.EncontrarUtilizador(socket.id);
 
-        var channel = manager.channels[channelName];
+        var channel = manager.grupos[channelName];
 
         // check fetcher was a user of channel
         if (fetcher != null && channel != null && channel.users.indexOf(fetcher.id) !== -1)
@@ -240,8 +228,8 @@ function defineSocketEvents(socket) {
     });
 
     socket.on("typing", channelName => {
-        var user = socket.user || manager.findUser(socket.id);
-        var channel = manager.channels[channelName];
+        var user = socket.user || manager.EncontrarUtilizador(socket.id);
+        var channel = manager.grupos[channelName];
 
         if (user && channel && channel.users.indexOf(user.id) !== -1) {
             chat.sockets.in(channel.name).emit("typing", { channel: channel.name, user: user.id });

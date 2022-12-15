@@ -1,14 +1,12 @@
-
 "use strict";
-
 
 // variables which hold the data for each person
 var socket = io(), 
-	lstUsers = null,
-	lstChannels = null,
+	listaUtilizadores = null,
+	listaGrupos = null,
 	currentChannelName = "",
-	channelMessages = {},
-	channels = null,
+	channelMsgs = {},
+	grupos = null,
 	state = ["offline", "online"], // 0: offline, 1: online
 	keys = getCipherKeys();
 	
@@ -19,7 +17,6 @@ socket.on("connect", () => {
 	setConnectionStatus("connected");
 	var me = getMe();
 	if (me && localStorage.hashedPass) {
-		// nonce password
 		me.password = getNoncePassword(localStorage.hashedPass);
 		socket.emit('login', me);		
 	}
@@ -40,7 +37,6 @@ socket.on("disconnect", () => {
 	setConnectionStatus("disconnected");
 });
 
-// on exception occurred from server call
 socket.on("exception", err => {
 	alert(err);
 });
@@ -48,22 +44,22 @@ socket.on("exception", err => {
 // guardar os dados do utilizador com sucesso no servidor
 socket.on('signed', signedin);
 	
-// atualizar os dados dos utilizadores e os channels quando o seu estado muda
+// atualizar os dados dos utilizadores e os grupos quando o seu estado muda
 socket.on('update', data => {
-	lstUsers = data.users;
-	lstChannels = data.channels;
+	listaUtilizadores = data.users;
+	listaGrupos = data.grupos;
 	$("#userContacts").empty();
 	$("#channelContacts").empty();
 
-	delete lstUsers[getMe().id];
-	for (var prop in lstUsers) {
-		var user = lstUsers[prop];
+	delete listaUtilizadores[getMe().id];
+	for (var prop in listaUtilizadores) {
+		var user = listaUtilizadores[prop];
 		var channel = getChannelName(user.id);
 		$("#userContacts").append("<li id='" + channel + "' class='contact'>" + getUserLink(user, channel) + "</li>");
 	}
 
-	for (var prop in lstChannels) {
-		var channel = lstChannels[prop];
+	for (var prop in listaGrupos) {
+		var channel = listaGrupos[prop];
 		$("#channelContacts").append("<li id='" + channel.name + "' class='contact'>" + getChannelLink(channel) + "</li>")
 	};
 
@@ -74,7 +70,7 @@ socket.on('update', data => {
 
 // quando um client se desconecta ou um administrador do channel está offline
 socket.on('leave', leftedUser => {
-	var u = lstUsers[leftedUser.id];
+	var u = listaUtilizadores[leftedUser.id];
 	if (u != null) {
 		u.status = leftedUser.status;
 		var chat = getChannelName(u.id);
@@ -84,12 +80,12 @@ socket.on('leave', leftedUser => {
 
 // pedido dos utilizadores para conversar e para entrar no grupo 
 socket.on('request', data => {
-	var reqUser = lstUsers[data.from];
+	var reqUser = listaUtilizadores[data.from];
 	if (reqUser == null) {
 		socket.emit("reject", { to: data.from, channel: data.channel, msg: "I don't know who requested!" });
 		return;
 	}
-	var reqChannel = getChannels()[data.channel];
+	var reqChannel = getgrupos()[data.channel];
 
 	if (reqChannel == null) {  // dose not exist in channel list, so it's a new p2p channel!
 		// ask me to accept or reject user request	
@@ -98,9 +94,8 @@ socket.on('request', data => {
 			socket.emit("reject", { to: data.from, channel: data.channel });
 			return;
 		}
-		//aceitou
-		createChannel(data.channel, true);
-		reqChannel = getChannels()[data.channel];	
+		CriarGrupo(data.channel, true);
+		reqChannel = getgrupos()[data.channel];	
 	}
 	else if (reqChannel.p2p === false) {
 		// ask me to accept or reject user request
@@ -123,7 +118,7 @@ socket.on('accept', data => {
 	swal("", "O seu pedido foi aceite!", "success");
 	var symmetricKey = data.channelKey.asymDecrypt(keys.privateKey);
 	
-	// store this channel to my channels list
+	// store this channel to my grupos list
 	setChannel(data.channel, { name: data.channel, p2p: data.p2p, channelKey: symmetricKey });
 	chatStarted(data.channel);	
 	
@@ -131,7 +126,7 @@ socket.on('accept', data => {
 
 // pedidos rejeitados pelo admin, tanto para iniciar um chat como entrar no grupo criado por ele
 socket.on('reject', data => {
-	var admin = lstUsers[data.from];
+	var admin = listaUtilizadores[data.from];
 	var reason = data.msg == null ? "" : "because " + data.msg;
 	if (data.p2p)
 		swal("Erro!", `${admin.username} recusou o pedido para conversares com ele !!${reason}`, "error")
@@ -141,14 +136,12 @@ socket.on('reject', data => {
 	$(`#${data.channel}`).find(".wait").css("display", "none");
 });
 
-// when a messsage sent to me or channel which is I member in
 socket.on('receive', data => {
 	if (currentChannelName == data.to)  // from current channel name
 		appendMessage(data);
 	else {
-		// keep in buffer for other time view
 		data.state = "replies";
-		//
+		
 		// increase badge
 		var badge = $(`#${data.to}`).find(".badge");
 		var badgeVal = badge.attr("data-badge");
@@ -159,11 +152,11 @@ socket.on('receive', data => {
 	getMessages(data.to).push(data);
 });
 
-// when get response of my requests to fetch history of the chat messages
+
 socket.on('fetch-messages', data => {
 	if (data.messages == null)
-		data.messages == []; // set to un-null to except next time requests
-	channelMessages[data.channel] = data.messages;
+		data.messages == []; 
+	channelMsgs[data.channel] = data.messages;
 	updateMessages();
 });
 
@@ -174,9 +167,9 @@ socket.on('error', () => {
 
 function reqChatBy(name) {
 	$(`#${name}`).find(".wait").css("display", "block");
-	var channel = getChannels()[name];
+	var channel = getgrupos()[name];
 
-	if (channel && channel.channelKey) { // me already joined in chat
+	if (channel && channel.channelKey) {
 		chatStarted(name);
 	}
 	else {
@@ -210,32 +203,30 @@ function getChannelName(userid) {
 	return `${ids[0]}_${ids[1]}`; // unique name for this users private 
 }
 
-// set channels thread safe
 function setChannel(name, channel) {
-	getChannels()[name] = channel;
-	localStorage.channels = JSON.stringify(getChannels());
+	getgrupos()[name] = channel;
+	localStorage.grupos = JSON.stringify(getgrupos());
 }
 
-function getChannels() {
-	if (channels)
-		return channels;
+function getgrupos() {
+	if (grupos)
+		return grupos;
 
-	if (localStorage.channels)
-		channels = JSON.parse(localStorage.channels)
+	if (localStorage.grupos)
+		grupos = JSON.parse(localStorage.grupos)
 	else {
-		channels = {};
-		localStorage.channels = "{}"; // store string of object
+		grupos = {};
+		localStorage.grupos = "{}"; 
 	}
 
-	return channels;
+	return grupos;
 }
 
 function setMe(data) {
 	var lastMe = getMe();
 
 	if (lastMe && lastMe.serverVersion !== data.serverVersion) {
-		// server restarted, so refresh cached data
-		localStorage.channels = "{}";
+		localStorage.grupos = "{}";
 	}
 	localStorage.me = JSON.stringify(data);
 }
@@ -287,7 +278,7 @@ function updateMessages() {
 	// show old messages
 	var messages = getMessages(currentChannelName);
 
-	// add all messages to screen
+	// adicionar as mensagens na tela
 	var lstMessagesDom = $('.messages ul');
 	lstMessagesDom.empty(); // clear screen
 	for (var i in messages) {
@@ -303,12 +294,11 @@ function newMessage() {
 
 	if (currentChannelName == null || currentChannelName == '') {
 		swal("Erro!", "Selecione alguém primeiro para falar!! ", "error")
-		//alert("Please first select a chat to sending message!");
 		return false;
 	}
 
 	// get channel symmetric key and encrypt message
-	var chatSymmetricKey = getChannels()[currentChannelName].channelKey;
+	var chatSymmetricKey = getgrupos()[currentChannelName].channelKey;
 	var msg = message.symEncrypt(chatSymmetricKey)
 	//console.log("Chave simetrica:"+ chatSymmetricKey);
 	console.log("Mensagem encriptada:" +msg);
@@ -316,7 +306,6 @@ function newMessage() {
 	// Send the message to the chat channel
 	socket.emit('msg', { msg: msg, from: getMe().id, to: currentChannelName });
 
-	// Empty the message input
 	$('.message-input input').val(null);
 	$('.message-input input').focus();
 };
@@ -327,29 +316,27 @@ function appendMessage(data) {
 		data.name = getMe().username;
 	} else {
 		data.state = "replies"
-		data.name = lstUsers[data.from].username;
+		data.name = listaUtilizadores[data.from].username;
 	}
 
 	data.msgHeader = "";
-	if (lstChannels[data.to]) { // if is a real channel
+	if (listaGrupos[data.to]) { 
 		data.msgHeader = `<b>${data.name}</b><br />`
 	}
 
 	// get this channel symmetric key to decrypt message
-	var symmetricKey = getChannels()[currentChannelName].channelKey;
+	var symmetricKey = getgrupos()[currentChannelName].channelKey;
 	var msg = data.msg.symDecrypt(symmetricKey)
 	console.log("Mensagem desencriptada:"+ msg);
 
-	// add to self screen
 	var messagesScreen = $(".messages");
 	messagesScreen.find("ul").append(`<li class="${data.state}"><img src="img/person.png" title="${data.name}" /><p>${data.msgHeader}${msg}</p></li>`); // append message to end of page
 	messagesScreen.scrollTop(messagesScreen[0].scrollHeight); // scroll to end of messages page
 }
 
 function getMessages(channel) {
-	var msgArray = channelMessages[channel];
+	var msgArray = channelMsgs[channel];
 	if (msgArray == null) {
-		// fetch from server
 		socket.emit("fetch-messages", channel);
 		return [];
 	}
@@ -357,21 +344,19 @@ function getMessages(channel) {
 		return msgArray;
 }
 
-function createChannel(channel, p2p) {
-	if (lstChannels[channel])
+function CriarGrupo(channel, p2p) {
+	if (listaGrupos[channel])
 		return false;
 
-	// my socket is admin for this channel
 	// generate symmetric key 
 	var symmetricKey = generateKey(50);
-	//
-	// store this channel to my channels list
+
+	// store this channel to my grupos list
 	setChannel(channel, { name: channel, p2p: p2p, channelKey: symmetricKey });
 
 	return true;
 }
 
-// create nonce password by socket.id
 function getNoncePassword(pass) {
 	return pass.symEncrypt(socket.id);
 }
@@ -379,44 +364,40 @@ function getNoncePassword(pass) {
 (function ($) {
 	"use strict";
 
-	/*[ Press Enter to send message ]*/
+	/* Press Enter para enviar a mensagem*/
 	$('.submit').click(function () {
 		newMessage();
 	});
 
 	$(window).on('keydown', function (e) {
-		// notify user is typing...
 		if (e.which == 13) {
 			newMessage();
 		}
 	});
 
-	/*[ Press Enter to login ]*/
+	/*Press Enter to login*/
 	$(".validate-input").on('keydown', function (e) {
 		if (e.which == 13) {
 			$("#loginButton").click();
 		}
 	});
 	
-	/*[ Add channel button ]*/
+	/*Add channel button*/
 	$("#addchannel").on("click", () => {
 		var name = prompt("Por favor dê um nome ao grupo:", "Grupo");
 		if (name) {
-			if (createChannel(name, false)) {
-				// send data to requester user to join in current channel
-				socket.emit("createChannel", name);
+			if (CriarGrupo(name, false)) {
+				socket.emit("CriarGrupo", name);
 			}
 			else {
 				swal("Erro!", "Já existe um grupo com esse nome ", "error")
 			}
 		}
 	})
-	/*[ Validate ]*/
 	var input = $('.validate-input .input100');
 
 	// Submit login div 
 	$("#loginButton").on('click', () => {
-		// validation data
 		var check = true;
 		for (var i = 0; i < input.length; i++) {
 			if (validate(input[i]) == false) {
@@ -425,7 +406,7 @@ function getNoncePassword(pass) {
 			}
 		}
 
-		if (check) { // if login data is valid then:
+		if (check) { 
 			var name = $.trim($("#yourName").val());
 			var email = $("#yourEmail").val();
 			var pass = $("#yourPass").val();
