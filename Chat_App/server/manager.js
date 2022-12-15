@@ -2,11 +2,10 @@ var e = {}
 module.exports = e;
 
 e.clients = {}; // property: id, value: { socketid, id, username, email, pubKey, password, status }
-e.messageTypes = ["ack", "request", "message", "symmetricKey"];
 e.messages = {}; // property: channelName, value { from, to, date, type }
-e.channels = {}; // property: channelName, value: { name, p2p, adminUserId, users[] }
+e.grupos = {}; // property: channelName, value: { name, p2p, adminUserId, users[] }
 
-// generate 16 char length GUID
+// generate 16 char length
 e.generateGuid = function () {
     return Math.random().toString(36).substring(2, 10) +
         Math.random().toString(36).substring(2, 10);
@@ -37,32 +36,32 @@ e.getUsers = function () {
     return users;
 }
 
-e.getUserChannels = function (userId, byP2p = false) {
-    var userChannels = {};
+e.getUsergrupos = function (userId, byP2p = false) {
+    var usergrupos = {};
     if (userId) {
-        for (prop in e.channels) {
-            var r = e.channels[prop];
+        for (prop in e.grupos) {
+            var r = e.grupos[prop];
             if (r.users.indexOf(userId) !== -1) {
                 if ((byP2p === false && r.p2p === false) || byP2p === true)
-                    userChannels[prop] = r;
+                    usergrupos[prop] = r;
             }
         }
     }
-    return userChannels;
+    return usergrupos;
 }
 
-e.getChannels = function () {
-    var lstChannels = {};
-    for (prop in e.channels) {
-        var r = e.channels[prop];
+e.getgrupos = function () {
+    var listaGrupos = {};
+    for (prop in e.grupos) {
+        var r = e.grupos[prop];
         if (r.p2p === false) {
-            lstChannels[prop] = r;
+            listaGrupos[prop] = r;
         }
     }
-    return lstChannels;
+    return listaGrupos;
 }
 
-e.findUser = function (socketid) {
+e.EncontrarUtilizador = function (socketid) {
     for (prop in e.clients) {
         var u = e.clients[prop];
         if (u.socketid === socketid) {
@@ -75,14 +74,14 @@ e.findUser = function (socketid) {
 //junçao dos id dos utilizadores quando pretendem falar os dois 
 e.generateChannelName = function (uid0, uid1) {
     var ids = [uid0, uid1].sort();
-    return ids[0] + "_" + ids[1]; // unique name for this users private 
+    return ids[0] + "_" + ids[1]; 
 }
 
 e.getAdminFromChannelName = function (channelName, userid) {
     var admin = null;
 
     // find channel to send client request
-    var channel = e.channels[channelName];
+    var channel = e.grupos[channelName];
 
     if (channel == null) { // requested to new p2p channel
         var halfIndex = channelName.indexOf("_");
@@ -93,8 +92,8 @@ e.getAdminFromChannelName = function (channelName, userid) {
         var u1 = channelName.substring(halfIndex + 1);
 
         admin = (u0 === userid)
-            ? e.clients[u1] // u1 is admin id
-            : admin = e.clients[u0];  // u0 is admin id
+            ? e.clients[u1] 
+            : admin = e.clients[u0];
     }
     else
         admin = e.clients[channel.adminUserId];

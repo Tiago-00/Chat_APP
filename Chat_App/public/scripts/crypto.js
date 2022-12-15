@@ -6,7 +6,6 @@ var rsa = new JSEncrypt();
 var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz*&-%/!?*+=()";
 
 // create a key for symmetric encryption
-// pass in the desired length of your key
 function generateKey(keyLength) {
     var randomstring = '';
 

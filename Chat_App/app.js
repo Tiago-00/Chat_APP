@@ -11,14 +11,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.set('view engine', 'html');
 
-// Initialize the ejs template engine
 app.engine('html', require('ejs').renderFile);
 
 // onde ira encontrar o template
 app.set('views', path.join(__dirname, 'public/views'));
 
-// sets up event listeners for the two main URL 
-// endpoints of the application - /
 app.get('/', function (req, res) {
 	// Render views/chat.html
 	res.render('chat');
