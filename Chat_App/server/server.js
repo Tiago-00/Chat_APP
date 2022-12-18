@@ -7,6 +7,7 @@ var ChatGlobal = "environment"; // add any authenticated user to this channel
 var chat = {}; // socket.io
 var loginExpireTime = 3600 * 1000; // 3600sec
 
+
 module.exports = function (app, io) {
     // Initialize a new socket.io application, named 'chat'
     chat = io;
@@ -112,14 +113,25 @@ function defineSocketEvents(socket) {
     socket.on("msg", data => {
         var from = socket.user || manager.EncontrarUtilizador(socket.id);
         var channel = manager.grupos[data.to];
-
+        const hmacKey = data.hmacKey;
+        var hmac = data.hmac;
         if (from != null && channel != null && channel.users.indexOf(from.id) != -1) {
+            hmac = crypto.HmacSHA256(data.msg, hmacKey).toString();
+           // hmac = "ola";
+            console.log("hmac:"+hmac);
+            if (hmac != data.hmac) {
+                // HMACs do not match, discard the message
+                console.log("ola");
+                return ;
+            }
+            //console.log("w");
             var msg = manager.messages[channel.name];
             if (msg == null)
                 msg = manager.messages[channel.name] = [];
 
             data.date = Date.now();
             data.type = "msg";
+
             // When the server receives a message, it sends it to the all clients
             chat.sockets.in(channel.name).emit('receive', data);
             msg.push(data);

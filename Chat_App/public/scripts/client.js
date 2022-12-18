@@ -137,6 +137,7 @@ socket.on('reject', data => {
 });
 
 socket.on('receive', data => {
+		
 	if (currentChannelName == data.to)  // from current channel name
 		appendMessage(data);
 	else {
@@ -288,6 +289,7 @@ function updateMessages() {
 
 function newMessage() {
 	var message = $(".message-input input").val();
+	
 	if ($.trim(message) == '') {
 		return false;
 	}
@@ -296,15 +298,20 @@ function newMessage() {
 		swal("Erro!", "Selecione alguém primeiro para falar!! ", "error")
 		return false;
 	}
-
+	
+	
 	// get channel symmetric key and encrypt message
 	var chatSymmetricKey = getgrupos()[currentChannelName].channelKey;
 	var msg = message.symEncrypt(chatSymmetricKey)
+	var hmac = CryptoJS.HmacSHA256(msg, chatSymmetricKey);
+	hmac = CryptoJS.enc.Hex.stringify(hmac);
+	console.log("hmac:"+ hmac);
 	//console.log("Chave simetrica:"+ chatSymmetricKey);
+	
 	console.log("Mensagem encriptada:" +msg);
 
 	// Send the message to the chat channel
-	socket.emit('msg', { msg: msg, from: getMe().id, to: currentChannelName });
+	socket.emit('msg', { msg: msg, hmac: hmac, hmacKey: chatSymmetricKey, from: getMe().id, to: currentChannelName });
 
 	$('.message-input input').val(null);
 	$('.message-input input').focus();
@@ -326,6 +333,8 @@ function appendMessage(data) {
 
 	// get this channel symmetric key to decrypt message
 	var symmetricKey = getgrupos()[currentChannelName].channelKey;
+	console.log("chave simétrica:" + symmetricKey);
+	console.log("mensagem encriptada:"+ data.msg);
 	var msg = data.msg.symDecrypt(symmetricKey)
 	console.log("Mensagem desencriptada:"+ msg);
 
